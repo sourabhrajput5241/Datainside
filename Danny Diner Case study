@@ -1,0 +1,219 @@
+CREATE SCHEMA dannys_diner;
+SET search_path = dannys_diner;
+
+CREATE TABLE sales (
+  "customer_id" VARCHAR(1),
+  "order_date" DATE,
+  "product_id" INTEGER
+);
+
+INSERT INTO sales
+  ("customer_id", "order_date", "product_id")
+VALUES
+  ('A', '2021-01-01', '1'),
+  ('A', '2021-01-01', '2'),
+  ('A', '2021-01-07', '2'),
+  ('A', '2021-01-10', '3'),
+  ('A', '2021-01-11', '3'),
+  ('A', '2021-01-11', '3'),
+  ('B', '2021-01-01', '2'),
+  ('B', '2021-01-02', '2'),
+  ('B', '2021-01-04', '1'),
+  ('B', '2021-01-11', '1'),
+  ('B', '2021-01-16', '3'),
+  ('B', '2021-02-01', '3'),
+  ('C', '2021-01-01', '3'),
+  ('C', '2021-01-01', '3'),
+  ('C', '2021-01-07', '3');
+ 
+
+CREATE TABLE menu (
+  "product_id" INTEGER,
+  "product_name" VARCHAR(5),
+  "price" INTEGER
+);
+
+INSERT INTO menu
+  ("product_id", "product_name", "price")
+VALUES
+  ('1', 'sushi', '10'),
+  ('2', 'curry', '15'),
+  ('3', 'ramen', '12');
+  
+
+CREATE TABLE members (
+  "customer_id" VARCHAR(1),
+  "join_date" DATE
+);
+
+INSERT INTO members
+  ("customer_id", "join_date")
+VALUES
+  ('A', '2021-01-07'),
+  ('B', '2021-01-09');
+  
+  
+  Business Question & Answer
+  
+  
+  
+  
+  SELECT * FROM public."Menu"
+
+SELECT * FROM public."Sales"
+
+select *from members
+	
+Q.1.What is the total amount each customer spent at the restaurant?	
+
+select customer_id, sum(price) as Total_Amount 
+from public."Sales" as s
+inner join public."Menu" as m on s.product_id = m.product_id
+group by customer_id;
+
+Q.2.How many days has each customer visited the restaurant?
+
+select customer_id, count(distinct(order_date))as Total_visit from public."Sales" 
+group by customer_id order by count(distinct(order_date)) desc;
+
+
+
+Q.3.What was the first item from the menu purchased by each customer?
+
+-- customer id , -- order date ,  --product name
+
+with orderd_sales_cte as
+(select s.customer_id, s.order_date, m.product_name,
+dense_rank() over(partition by customer_id order by order_date) as Rank
+from public."Sales" as s
+join public."Menu" as m on s.product_id = m.product_id)
+
+select customer_id, product_name
+from orderd_sales_cte 
+where rank = 1
+
+
+Q.4.What is the most purchased item on the menu and how many times was it purchased by all customers?
+
+SELECT * FROM public."Menu"
+SELECT * FROM public."Sales"
+select *from members
+	
+-- output (1) Most pruchase  (2) COUNT OF ORDER_DATE
+
+select m.product_name, count(order_date) as Most_purchase
+from public."Menu" as m
+inner join public."Sales" as s on s.product_id = m.product_id
+group by m.product_name
+order by  count(order_date) desc limit 1;
+
+
+5.Which item was the most popular for each customer?
+
+SELECT * FROM public."Menu"
+SELECT * FROM public."Sales"
+select *from members
+
+
+with most_fav_items as
+(select s.customer_id,m.product_name, count(m.product_id) as Order_count,
+dense_rank() over(partition by s.customer_id order by count (s.customer_id) desc) as Rank
+from public."Menu" as m
+join public."Sales" as s on m.product_id = s.product_id
+group by m.product_name,s.customer_id)
+
+select customer_id,product_name,order_count
+from most_fav_items
+where rank = 1;
+
+Customer A and C’s favourite item is ramen.
+Customer B enjoys all items in the menu. He/she is a true foodie.
+
+
+6.Which item was purchased first by the customer after they became a member?
+
+SELECT * FROM public."Menu"
+SELECT * FROM public."Sales"
+select *from members
+
+with sales_cte as
+(select s.customer_id,s.order_date,m.join_date,s.product_id,
+rank() over(partition by s.customer_id order by s.order_date) as rank
+from public."Sales" as s
+join members as m on s.customer_id = m.customer_id
+where s.order_date>=m.join_date)
+
+
+select s.customer_id,s.order_date,m2.product_name
+from sales_cte as s
+join public."Menu" as m2 on m2.product_id = s.product_id
+where rank =1;
+
+
+
+7. Which item was purchased just before the customer became a member?
+
+with before_member_purchased as
+(select s.customer_id,s.order_date,m.join_date,s.product_id,
+rank() over(partition by s.customer_id order by s.order_date ) as rank
+from public."Sales" as s
+join members as m on s.customer_id = m.customer_id
+where s.order_date<=m.join_date)
+
+
+select s.customer_id,s.order_date,m2.product_name
+from before_member_purchased as s
+join public."Menu" as m2 on m2.product_id = s.product_id
+where rank =1;
+
+
+8.What is the total items and amount spent for each member before they became a member?
+
+SELECT * FROM public."Menu"
+SELECT * FROM public."Sales"
+select *from members
+
+product_id,price,customer_id
+
+select s.customer_id,count(distinct (m.product_id)) as unique_menu_items, sum(m.price) as total_Sales 
+from public."Menu" as m 
+join public."Sales" as s on 
+m.product_id = s.product_id
+join members as mm on
+s.customer_id = mm.customer_id
+WHERE s.order_date < mm.join_date
+group by s.customer_id;
+
+Before becoming members,
+
+Customer A spent $ 25 on 2 items.
+Customer B spent $40 on 2 items.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+  
+  
